@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Downloader Pro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-download"></i>
+                    <h1>Image Downloader Pro</h1>
+                </div>
+                <p class="subtitle">Download images and convert to PDF with style</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Mode Selection -->
+            <section class="card mode-selection">
+                <h2><i class="fas fa-cog"></i> Download Mode</h2>
+                <div class="mode-options">
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="single" id="single-mode">
+                        <div class="mode-card">
+                            <i class="fas fa-image"></i>
+                            <h3>Single Image</h3>
+                            <p>Download one image at a time</p>
+                        </div>
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="batch" id="batch-mode" checked>
+                        <div class="mode-card">
+                            <i class="fas fa-file-pdf"></i>
+                            <h3>Batch + PDF</h3>
+                            <p>Download multiple images and create PDF</p>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Input Section -->
+            <section class="card input-section">
+                <!-- Single Image Form -->
+                <div id="single-form" class="form-container" style="display: none;">
+                    <h2><i class="fas fa-link"></i> Image URL</h2>
+                    <div class="input-group">
+                        <input type="url" id="single-url" placeholder="https://example.com/image.jpg" class="url-input">
+                        <button id="download-single" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Download
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Batch Form -->
+                <div id="batch-form" class="form-container">
+                    <h2><i class="fas fa-layer-group"></i> Batch Download</h2>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="start-url">Start URL</label>
+                            <input type="url" id="start-url" placeholder="https://example.com/page/0001.jpg" class="url-input">
+                        </div>
+                        <div class="input-group">
+                            <label for="end-url">End URL</label>
+                            <input type="url" id="end-url" placeholder="https://example.com/page/0050.jpg" class="url-input">
+                        </div>
+                        <div class="input-group">
+                            <label for="pdf-name">PDF Filename</label>
+                            <input type="text" id="pdf-name" value="downloaded_document.pdf" class="url-input">
+                        </div>
+                    </div>
+                    <button id="download-batch" class="btn btn-primary btn-large">
+                        <i class="fas fa-rocket"></i> Start Batch Download
+                    </button>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="card progress-section">
+                <h2><i class="fas fa-chart-line"></i> Progress</h2>
+                <div class="progress-container">
+                    <div class="progress-info">
+                        <span id="progress-text">Ready to download</span>
+                        <span id="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Log Section -->
+            <section class="card log-section">
+                <h2><i class="fas fa-terminal"></i> Download Log</h2>
+                <div class="log-container" id="log-container">
+                    <div class="log-entry info">
+                        <span class="timestamp">[Ready]</span>
+                        <span class="message">🚀 Ready to start downloading</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2024 Image Downloader Pro - Built with ❤️</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
