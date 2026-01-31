@@ -129,7 +129,7 @@ def download_single_worker(manager, url):
         with open(filepath, 'wb') as f:
             f.write(response.content)
         
-        manager.emit_progress(f"✅ Image saved: {filename}", 1, "completed")
+        manager.emit_progress(f"✅ Image saved: {filename}", 1, "completed", filename)
         
     except Exception as e:
         manager.emit_progress(f"❌ Download failed: {str(e)}", 0, "error")
