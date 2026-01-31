@@ -72,8 +72,15 @@
                             <input type="url" id="end-url" placeholder="https://example.com/page/0050.jpg" class="url-input">
                         </div>
                         <div class="input-group">
-                            <label for="pdf-name">PDF Filename</label>
-                            <input type="text" id="pdf-name" value="downloaded_document.pdf" class="url-input">
+                            <label for="output-name">Output Filename</label>
+                            <input type="text" id="output-name" value="downloaded_document" class="url-input">
+                        </div>
+                        <div class="input-group">
+                            <label for="output-format">Output Format</label>
+                            <select id="output-format" class="url-input">
+                                <option value="pdf">PDF Document</option>
+                                <option value="zip">ZIP Archive</option>
+                            </select>
                         </div>
                     </div>
                     <button id="download-batch" class="btn btn-primary btn-large">
@@ -93,6 +100,11 @@
                     <div class="progress-bar">
                         <div class="progress-fill" id="progress-fill"></div>
                     </div>
+                </div>
+                <div id="download-section" style="display: none; margin-top: 20px;">
+                    <button id="download-file-btn" class="btn btn-success btn-large">
+                        <i class="fas fa-download"></i> Download File
+                    </button>
                 </div>
             </section>
 

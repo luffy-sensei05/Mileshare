@@ -21,11 +21,14 @@ class ImageDownloaderApp {
         this.singleUrlInput = document.getElementById('single-url');
         this.startUrlInput = document.getElementById('start-url');
         this.endUrlInput = document.getElementById('end-url');
-        this.pdfNameInput = document.getElementById('pdf-name');
+        this.outputNameInput = document.getElementById('output-name');
+        this.outputFormatSelect = document.getElementById('output-format');
         
         // Button elements
         this.downloadSingleBtn = document.getElementById('download-single');
         this.downloadBatchBtn = document.getElementById('download-batch');
+        this.downloadFileBtn = document.getElementById('download-file-btn');
+        this.downloadSection = document.getElementById('download-section');
         
         // Progress elements
         this.progressText = document.getElementById('progress-text');
@@ -34,6 +37,9 @@ class ImageDownloaderApp {
         
         // Log elements
         this.logContainer = document.getElementById('log-container');
+        
+        // Store downloaded file info
+        this.downloadedFile = null;
     }
     
     bindEvents() {
@@ -44,13 +50,14 @@ class ImageDownloaderApp {
         // Download button events
         this.downloadSingleBtn.addEventListener('click', () => this.handleSingleDownload());
         this.downloadBatchBtn.addEventListener('click', () => this.handleBatchDownload());
+        this.downloadFileBtn.addEventListener('click', () => this.handleFileDownload());
         
         // Enter key events
         this.singleUrlInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleSingleDownload();
         });
         
-        [this.startUrlInput, this.endUrlInput, this.pdfNameInput].forEach(input => {
+        [this.startUrlInput, this.endUrlInput, this.outputNameInput].forEach(input => {
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.handleBatchDownload();
             });
@@ -161,7 +168,8 @@ class ImageDownloaderApp {
         
         const startUrl = this.startUrlInput.value.trim();
         const endUrl = this.endUrlInput.value.trim();
-        const pdfName = this.pdfNameInput.value.trim() || 'downloaded_document.pdf';
+        const outputName = this.outputNameInput.value.trim() || 'downloaded_document';
+        const outputFormat = this.outputFormatSelect.value;
         
         if (!startUrl || !endUrl || !this.isValidUrl(startUrl) || !this.isValidUrl(endUrl)) {
             this.addLogEntry('❌ Please enter valid start and end URLs', 'error');
@@ -180,7 +188,8 @@ class ImageDownloaderApp {
                 body: JSON.stringify({
                     start_url: startUrl,
                     end_url: endUrl,
-                    pdf_name: pdfName
+                    output_name: outputName,
+                    output_format: outputFormat
                 })
             });
             
@@ -216,8 +225,25 @@ class ImageDownloaderApp {
         this.addLogEntry(data.message, logType);
         
         // Handle completion
-        if (data.status === 'completed' || data.status === 'error') {
+        if (data.status === 'completed') {
             this.stopDownload();
+            if (data.filename) {
+                this.showDownloadButton(data.filename);
+            }
+        } else if (data.status === 'error') {
+            this.stopDownload();
+        }
+    }
+    
+    showDownloadButton(filename) {
+        this.downloadedFile = filename;
+        this.downloadSection.style.display = 'block';
+        this.downloadFileBtn.innerHTML = `<i class="fas fa-download"></i> Download ${filename}`;
+    }
+    
+    handleFileDownload() {
+        if (this.downloadedFile) {
+            window.location.href = `/downloads/${this.downloadedFile}`;
         }
     }
     
@@ -226,6 +252,8 @@ class ImageDownloaderApp {
         this.updateButtonStates();
         this.clearLog();
         this.updateProgress(0, 'Starting download...');
+        this.downloadSection.style.display = 'none';
+        this.downloadedFile = null;
     }
     
     stopDownload() {

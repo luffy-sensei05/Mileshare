@@ -4,6 +4,9 @@ Beautiful Web-based Image Downloader
 Flask backend for the image downloader with modern web UI
 """
 
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_socketio import SocketIO, emit
 import requests
@@ -20,7 +23,7 @@ import zipfile
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Store active downloads
 active_downloads = {}
@@ -34,21 +37,26 @@ class DownloadManager:
         self.current_file = ""
         self.status = "ready"
         
-    def emit_progress(self, message, progress=None, status=None):
+    def emit_progress(self, message, progress=None, status=None, filename=None):
         """Emit progress update to client"""
         if progress is not None:
             self.progress = progress
         if status is not None:
             self.status = status
             
-        socketio.emit('download_progress', {
+        payload = {
             'download_id': self.download_id,
             'message': message,
             'progress': self.progress,
             'total': self.total,
             'status': self.status,
             'timestamp': datetime.now().strftime("%H:%M:%S")
-        })
+        }
+        
+        if filename:
+            payload['filename'] = filename
+            
+        socketio.emit('download_progress', payload)
 
 @app.route('/')
 def index():
@@ -80,21 +88,25 @@ def download_single():
 
 @app.route('/api/download/batch', methods=['POST'])
 def download_batch():
-    """Download batch images and convert to PDF"""
+    """Download batch images and convert to PDF or ZIP"""
     data = request.get_json()
     start_url = data.get('start_url', '').strip()
     end_url = data.get('end_url', '').strip()
-    pdf_name = data.get('pdf_name', 'downloaded_document.pdf').strip()
+    output_name = data.get('output_name', 'downloaded_document').strip()
+    output_format = data.get('output_format', 'pdf').strip()
     
     if not start_url or not end_url:
         return jsonify({'error': 'Both start and end URLs are required'}), 400
+    
+    if output_format not in ['pdf', 'zip']:
+        return jsonify({'error': 'Invalid output format. Must be pdf or zip'}), 400
     
     download_id = str(uuid.uuid4())
     manager = DownloadManager(download_id)
     active_downloads[download_id] = manager
     
     # Start download in background
-    thread = threading.Thread(target=download_batch_worker, args=(manager, start_url, end_url, pdf_name))
+    thread = threading.Thread(target=download_batch_worker, args=(manager, start_url, end_url, output_name, output_format))
     thread.daemon = True
     thread.start()
     
@@ -124,8 +136,8 @@ def download_single_worker(manager, url):
     finally:
         manager.is_downloading = False
 
-def download_batch_worker(manager, start_url, end_url, pdf_name):
-    """Worker for batch download and PDF conversion"""
+def download_batch_worker(manager, start_url, end_url, output_name, output_format):
+    """Worker for batch download and PDF/ZIP conversion"""
     try:
         manager.is_downloading = True
         manager.emit_progress("Analyzing URLs...", 0, "downloading")
@@ -165,16 +177,28 @@ def download_batch_worker(manager, start_url, end_url, pdf_name):
             
             manager.emit_progress(f"✅ Downloaded {len(valid_images)}/{total_pages} images", total_pages, "converting")
             
-            # Convert to PDF
-            manager.emit_progress("📄 Converting to PDF...", total_pages, "converting")
-            
-            output_path = os.path.join("./downloads", pdf_name)
+            # Create output based on format
             Path("./downloads").mkdir(exist_ok=True)
             
-            if images_to_pdf(valid_images, output_path):
-                manager.emit_progress(f"🎉 PDF created: {pdf_name}", total_pages, "completed")
-            else:
-                manager.emit_progress("❌ Failed to create PDF", total_pages, "error")
+            if output_format == 'pdf':
+                output_filename = f"{output_name}.pdf"
+                output_path = os.path.join("./downloads", output_filename)
+                manager.emit_progress("📄 Converting to PDF...", total_pages, "converting")
+                
+                if images_to_pdf(valid_images, output_path):
+                    manager.emit_progress(f"🎉 PDF created: {output_filename}", total_pages, "completed", output_filename)
+                else:
+                    manager.emit_progress("❌ Failed to create PDF", total_pages, "error")
+            
+            elif output_format == 'zip':
+                output_filename = f"{output_name}.zip"
+                output_path = os.path.join("./downloads", output_filename)
+                manager.emit_progress("📦 Creating ZIP archive...", total_pages, "converting")
+                
+                if images_to_zip(valid_images, output_path):
+                    manager.emit_progress(f"🎉 ZIP created: {output_filename}", total_pages, "completed", output_filename)
+                else:
+                    manager.emit_progress("❌ Failed to create ZIP", total_pages, "error")
                 
     except Exception as e:
         manager.emit_progress(f"❌ Batch download failed: {str(e)}", 0, "error")
@@ -230,6 +254,20 @@ def images_to_pdf(image_paths, output_path):
             images[0].save(output_path, save_all=True, append_images=images[1:])
             return True
         return False
+        
+    except Exception as e:
+        return False
+
+def images_to_zip(image_paths, output_path):
+    """Create ZIP archive from list of image paths"""
+    try:
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for img_path in image_paths:
+                if img_path and os.path.exists(img_path):
+                    # Get just the filename for the archive
+                    arcname = os.path.basename(img_path)
+                    zipf.write(img_path, arcname)
+        return True
         
     except Exception as e:
         return False
